@@ -7,35 +7,14 @@ import {
   TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
-  
 } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+import { Layout } from '../styles';
 
 const ModalSelect = props => {
-  const [modalHeight, setModalHeight] = useState();
-  const [modalWidth, setModalWidth] = useState();
-  
-  const updateLayout = () => {
-    console.log("Dimensions changed height" + Dimensions.get('window').height);
-    console.log("Dimensions changed width" + Dimensions.get('window').width);
-
-    if (Dimensions.get('window').height < 500) {
-      setModalHeight(Dimensions.get('window').height - 50);
-    } else {
-      setModalHeight(Dimensions.get('window').height - 200);
-    }
-   setModalWidth(Dimensions.get('window').width - 80);
-  };
-  const cleanup = () => {
-    Dimensions.removeEventListener('change', updateLayout);
-  };
-  useEffect(() => {
-    updateLayout();
-    Dimensions.addEventListener('change', updateLayout);
-    return cleanup;
-  }, []);
-
-
   return (
     <View style={styles.container}>
       <Modal
@@ -56,7 +35,7 @@ const ModalSelect = props => {
           overflow='hidden'
           > 
           <View style={styles.centered}>
-            <View style={{...styles.modalView , width: modalWidth, height: modalHeight}}>
+            <View style={styles.modalView}>
                 {props.children}
             </View>
           </View>
@@ -85,15 +64,9 @@ const styles = StyleSheet.create({
     padding: "1%",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
+    ...Layout.shadow,
+    width: wp("80%"),
+    height: hp("80%")
   },
 });
 

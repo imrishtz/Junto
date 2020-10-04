@@ -1,8 +1,13 @@
 import React from 'react';
 import { Text, StyleSheet, PixelRatio } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const BodyText = props => (
   <Text  
+    ellipsizeMode='tail'
     style={{ ...styles.body, ...props.style }} 
     {...props}
     maxFontSizeMultiplier={1.3}
@@ -14,7 +19,7 @@ const BodyText = props => (
 const styles = StyleSheet.create({
   body: {
     fontFamily: 'jaldi',
-    fontSize: 14,
+    fontSize: hp("2%"),
   }
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -9,8 +9,12 @@ import {
   TouchableNativeFeedback,
   Platform,
   Dimensions,
-  
+  ScrollView, 
 } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 
 const XXXX = props => {
   return (

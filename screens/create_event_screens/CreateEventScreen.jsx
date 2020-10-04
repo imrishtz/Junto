@@ -17,7 +17,8 @@ import {
   TouchableNativeFeedback,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import * as eventsActions from '../../store/actions/events';
+import { Layout, Typography } from '../../styles';
+import * as participantsActions from '../../store/actions/participants';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons';
 import { FontAwesome, MaterialIcons, FontAwesome5, Fontisto } from '@expo/vector-icons';
 import {
@@ -29,15 +30,12 @@ import AddText from '../../components/AddText';
 import RenderText from '../../components/RenderText';
 import Colors from '../../constants/Colors';
 import IconSelect from '../../components/IconSelect';
-import { icons } from '../../constants/CardRightIcons';
+import { icons } from '../../constants/Icons';
 import BodyText from '../../components/BodyText';
 import CustomButton from '../../components/CustomButton';
 import HeaderButton from '../../components/HeaderButton';
-import * as participantsActions from '../../store/actions/participants';
 import PollButton from '../../components/PollButton';
 import EditPoll from '../../components/EditPoll';
-import DateTimePickerS from '../../components/DateTimePickerS';
-import AdjustableButton from '../../components/AdjustableButton';
 import SelectDate, {DATE, TIME} from '../../components/SelectDate';
 import ActiveFrame from '../../components/ActiveFrame';
 import AddDate from '../../components/AddDate';
@@ -46,9 +44,10 @@ import RenderDate from '../../components/RenderDate';
 const FIELD_HEIGHT = hp("14%");
 const LOCATION_POLL = 0;
 const DATE_POLL = 1;
-const currDate = new Date(Date.now());
+const currDate = (new Date(Date.now()));
 let extraKey = 0;
 let eventData;
+
 const showSelectedParticipants = (participants, onPress) => {
   let TouchableCmp = TouchableOpacity;
   
@@ -96,10 +95,9 @@ const showSelectedParticipants = (participants, onPress) => {
 
 
 const CreateEventScreen = props => {
-  const [textInputWidth, setTextInputWidth] = useState(180);
   const [eventName, setEventName] = useState('');
   const [eventNameSet, setEventNameSet] = useState(false);
-  const [location, setLocation] = useState();
+  const [location, setLocation] = useState('');
   const [locationNameSet, setLocationNameSet] = useState();
   const [eventStartDate, setEventStartDate] = useState({
     time: {value: currDate, isSet: false},
@@ -110,62 +108,63 @@ const CreateEventScreen = props => {
     date: {value: currDate, isSet: false},
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [icon, setIcon] = useState(icons[0]);
-  const [error, setError] = useState();
-  const [contacts, setContacts] = useState([]);
   const [isElementsOnOneRow, setIsElementsOnOneRow] = useState(Dimensions.get('window').width > 500);
   const [locationPoll, setLocationPoll] = useState({});
   const [datePoll, setDatePoll] = useState({});
-  const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const [showLocationPollModal, setShowLocationPollModal] = useState(false);
   const [showDatePollModal, setShowDatePollModal] = useState(false);
-  const dispatch = useDispatch();
-  const eventRef = useRef();
   const locationRef = useRef();
   const participants = useSelector(state => state.participants.participants);
-  const flexContainer = (flexSize) => {
+  
+  const dispatch = useDispatch();
+ 
+  const flexContainer = useCallback((flexSize) => {
     return (
       {flex: flexSize, padding: wp("1%")}
-    ) ;
-  }
-  const updateLayout = () => {
+    );
+  }, []);
+  const updateLayout = useCallback(() => {
     const newWidth = Dimensions.get('window').width;
-    setScreenWidth(newWidth);
-    setTextInputWidth(newWidth * 0.52);
     if (newWidth > 500) {
       setIsElementsOnOneRow(true);  
     } else {
       setIsElementsOnOneRow(false);
     }
-  };
+  }, []);
   const cleanup = () => {
-    dispatch(participantsActions.setParticipants([]));
     Dimensions.removeEventListener('change', updateLayout);
+    dispatch(participantsActions.setParticipants([]));
   };
+
   useEffect(() => {
     updateLayout();
     Dimensions.addEventListener('change', updateLayout);
     return cleanup;
   }, []);
-  const setLocationPollHandler = (answers) => {
+
+  const setLocationPollHandler = useCallback((answers) => {
     setShowLocationPollModal(false);
     setLocationPoll({pollAnswers: answers});
-  }
-  const showLocationPollHandler = () => {
+  },[]);
+
+  const showLocationPollHandler = useCallback(() => {
     setShowLocationPollModal(true);
-  }
-  const setDatePollHandler = (answers) => {
+  }, []);
+
+  const setDatePollHandler = useCallback((answers) => {
     setShowDatePollModal(false);
     setDatePoll({pollAnswers: answers});
-  }
-  const showDatePollHandler = () => {
+  }, []);
+
+  const showDatePollHandler = useCallback(() => {
     setShowDatePollModal(true);
-  }
-  const isPollHasAnswers = (pollObject) => {
+  }, []);
+
+  const isPollHasAnswers = useCallback((pollObject) => {
     return pollObject !== undefined &&
            pollObject.pollAnswers !== undefined &&
            pollObject.pollAnswers.length > 0;
-  }
+  }, []);
   
   useEffect(() => {
     eventData = {...eventData,
@@ -177,69 +176,42 @@ const CreateEventScreen = props => {
         location: location,
         locationPoll: locationPoll,
     };
-      props.navigation.setParams({eventData : eventData});
+    const navigateNextScreen = () => {
+      if (eventName) {
+        console.log("CRAETE EVENT eventData=" + JSON.stringify(eventData));
+        props.navigation.navigate('CreateEventSecond', {
+          eventData: eventData,
+        });
+      } else {
+        Alert.alert('Cannot create event', 'Please add name of event', [{ text: 'Okay' }]);
+      }
+    }
+      props.navigation.setParams({nextScreen : navigateNextScreen});
   }, [eventName, participants, location, locationPoll, eventStartDate, eventEndDate, datePoll]);
-
-
-  const submitHandler = useCallback(async () => {
-    console.log("submitHandler IMRI");
-    if (!eventName) {
-      console.log("submitHandler IMRI !isValid");
-      return;
-    }
-    setError(null);
-    setIsLoading(true);
-    try {
-      console.log(" CreateEventScreenparticipants=" + JSON.stringify(participants));
-      await dispatch(
-        eventsActions.createEvent(
-          eventName,
-          {from: '19:00 20/5', to: '12:00 21/5'},//formState.inputValues.date,
-          location,
-          locationPoll,
-          { name: 'Partying', icon: 'ios-menu'},// formState.inputValues.type,
-          participants,// formState.inputValues.participants,
-          ['cooler', 'shade'],// formState.inputValues.equipGroup,
-          ['pants', 'shirts'],// formState.inputValues.equipPersonal,
-          [{name: 'josh', responsibility: 'music'}, {name: 'benny', responsibility: 'sleep'}],// formState.inputValues.responsibilities
-          icon,
-          )
-      );
-      props.navigation.popToTop();
-    } catch (err) {
-      console.log("submitHandler IMRI err=" + err);
-      setError(err.message);
-    }
-    setIsLoading(false);
-
-  }, [dispatch, eventName, participants, location, locationPoll]);
   
-
-  useEffect(() => {
-    props.navigation.setParams({ submit: submitHandler });
-  }, [submitHandler]);
-  
-  const addParticipantsHandler = () => {
+  const addParticipantsHandler = useCallback(() => {
     props.navigation.navigate('AddParticipant');
-  }
-  
-  const eventNameBlurHandler = async () => {
-    setEventNameSet(eventName !== undefined && eventName.length > 0);
-  }
-  const locationNameBlurHandler = (text) => {
-    setLocationNameSet(text !== undefined && text.length > 0);
-  }  
+  }, []);
 
-  const changeStartDate = (name, value, isSet) => {
+  const eventNameBlurHandler = useCallback(async () => {
+    setEventNameSet(eventName !== undefined && eventName.length > 0);
+  }, []);
+
+  const locationNameBlurHandler = useCallback((text) => {
+    setLocationNameSet(text !== undefined && text.length > 0);
+  }, []);
+
+  const changeStartDate = useCallback((name, value,  isSet) => {
     setEventStartDate({...eventStartDate, [name] :{value, isSet: isSet}});
     // setting end date or hour to start selecting from the start date or hour
     if (!eventEndDate.date.isSet && name === DATE || !eventEndDate.time.isSet && name === TIME) {
       setEventEndDate({...eventEndDate, [name] :{value}});
     }
-  }
-  const changeEndDate = (name, value, isSet) => {
+  }, [eventStartDate, eventEndDate]);
+
+  const changeEndDate = useCallback((name, value, isSet) => {
     setEventEndDate({...eventEndDate, [name] :{value, isSet: isSet}});
-  }
+  }, [eventEndDate]);
 
   if (isLoading) {
     return (
@@ -275,14 +247,13 @@ const CreateEventScreen = props => {
                 <View style={styles.input}>
                   <TextInput
                     value={eventName}
-                    ref={eventRef}
-                    placeholder='Event Name...'
+                    placeholder='Event Name'
                     paddingHorizontal={5}
                     borderWidth={0}
                     maxFontSizeMultiplier={1.6}
                     returnKeyType='next'
                     returnKeyLabel={'Next'}
-                    fontSize={hp("3%")}
+                    fontSize={Typography.mediumLarge}
                     allowFontScaling={false}
                     multiline={true}
                     numberOfLines={2}
@@ -314,7 +285,7 @@ const CreateEventScreen = props => {
                 <View style={styles.input}>
                   <TextInput
                     value={location}
-                    placeholder='Event Location...'
+                    placeholder='Event Location'
                     ref = {locationRef}
                     paddingHorizontal={5}
                     borderWidth={0}
@@ -323,7 +294,7 @@ const CreateEventScreen = props => {
                     returnKeyType='done'
                     textAlignVertical='center'
                     onBlur={() => locationNameBlurHandler(location)}
-                    fontSize={hp("2.5%")}
+                    fontSize={Typography.mediumLarge}
                     blurOnSubmit={true}
                     multiline={true}
                     numberOfLines={3}
@@ -332,7 +303,7 @@ const CreateEventScreen = props => {
                 </View>  
               </ActiveFrame>
             </View>
-            <View style={{...flexContainer(2), alignItems: 'center', justifyContent: 'center'}}>
+            <View style={{...flexContainer(1), alignItems: 'center', justifyContent: 'center'}}>
                 <ActiveFrame 
                   isActive={isPollHasAnswers(locationPoll)}
                   isSquare={true}
@@ -340,6 +311,7 @@ const CreateEventScreen = props => {
                   <PollButton
                     isActive={isPollHasAnswers(locationPoll)}
                     onPress={showLocationPollHandler}
+                    create={true}
                   />
                 </ActiveFrame>
             </View>
@@ -389,7 +361,7 @@ const CreateEventScreen = props => {
                 </View>
               </View>
             </View>
-            <View style={{flex: 2, justifyContent: 'center', alignItems: 'center'}}>
+            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
               <ActiveFrame 
                 isActive={isPollHasAnswers(datePoll)}
                 isSquare={true}
@@ -397,6 +369,7 @@ const CreateEventScreen = props => {
                 <PollButton
                   isActive={isPollHasAnswers(datePoll)}
                   onPress={showDatePollHandler}
+                  create={true}
                 />
               </ActiveFrame>
             </View>
@@ -413,12 +386,11 @@ const CreateEventScreen = props => {
           <View style={{...styles.field, height: FIELD_HEIGHT * 1.3, justifyContent: 'space-evenly'}}>
             <View style={styles.button}>
               <CustomButton
-                style={{width: 65, height: 65}}
                 onPress={addParticipantsHandler}
                 icon={
                   <FontAwesome 
                   name='group'
-                  size={40} 
+                  size={hp("6%")} 
                   color={'black'}
                 />}>
               </CustomButton>
@@ -438,7 +410,6 @@ const CreateEventScreen = props => {
 
 
 CreateEventScreen.navigationOptions = navData => { 
-  const submit = navData.navigation.getParam('submit');
   return {
     title: 'Create Event',
     headerLeft: () =>
@@ -455,12 +426,8 @@ CreateEventScreen.navigationOptions = navData => {
     <HeaderButtons HeaderButtonComponent={HeaderButton}>
       <Item
         title="Next"
-        iconName={Platform.OS === 'android' ? 'md-arrow-forward' : 'ios-arrow-forward'}
-        onPress={() => {
-          navData.navigation.navigate('CreateEventSecond', {
-            eventData: eventData,
-          });
-        }}
+        iconName={'md-checkmark'}
+        onPress={navData.navigation.getParam('nextScreen')}
       />
     </HeaderButtons>
   }
@@ -486,16 +453,8 @@ const styles = StyleSheet.create({
 
   },
   field: {
-    flex: 1,
-    width: '100%',
+    ...Layout.field,
     height: FIELD_HEIGHT,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: wp("4%"),
-    paddingVertical: hp("1%"),
-    alignItems: 'center',
-    borderTopWidth: 0.5,
-    borderTopColor: 'black',
   },
   iconSelect: {
     flexDirection: 'row',
@@ -505,19 +464,6 @@ const styles = StyleSheet.create({
   text: {
     marginRight: "3%",
     fontSize: 16,
-  },
-  poll: {
-    position: 'absolute',
-  },
-  activePoll: {
-    flex: 1,
-    backgroundColor: Colors.lightGreeny,
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    borderRadius: 5,
-    justifyContent: 'center',
-    borderWidth: 0.5,
   },
   icon: {
     width: 45,
@@ -531,6 +477,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-evenly',
+    paddingHorizontal: wp("5%"),
   },
   toColumn:{
     flexDirection: 'column',
@@ -545,14 +492,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    fontSize: hp("2%"),
+    fontSize: Typography.small,
     flexWrap: 'wrap',
   },
   selectedParticipants: {
     flexWrap: 'wrap',
     flexDirection: 'row',
     padding: '1%',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   scrollContainer: {
     width: wp("52%"),
@@ -573,40 +520,30 @@ const styles = StyleSheet.create({
   selectedBox: {
     flexWrap: 'wrap',
     borderRadius: 15,
-    textAlign: 'left',
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
-    paddingHorizontal: "2%",
-    margin: 1.5,
+    ...Layout.shadow,
+    textAlign: 'center',
+    paddingHorizontal: wp("1.3%"),
+    marginHorizontal: wp("0.4%"),
+    marginVertical: hp("0.3%"),
     backgroundColor: Colors.lightGreeny,
     height: 31,
+    borderWidth: 0.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   selectedParticipantText: {
-    fontSize: hp("1.8%"),
+    fontSize: hp("2%"),
     fontFamily: 'jaldi-bold',
   },
   participantsBoxHolder: {
     flex: 1,
     width: wp("52%"),
-    height: hp("20%")
   },
   locationSelect: {
     flex: 1,
     justifyContent: 'center',
     maxHeight: FIELD_HEIGHT * 0.85
   },
-
 });
 
 export default CreateEventScreen;

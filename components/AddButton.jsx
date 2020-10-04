@@ -17,7 +17,8 @@ const AddButton = props => {
       onPress={props.onPress}
       style={styles.touchableOpacityStyle}>
       <Image
-        tintColor={'white'}
+
+        backgroundColor={Colors.primary}
         source={floatingAddIcon}
         style={styles.floatingButtonStyle}
       />
@@ -45,6 +46,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     width: 50,
     height: 50,
+    tintColor: 'white',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect} from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo} from 'react';
 import {
   Button,
   View,
@@ -9,35 +9,28 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
-  AsyncStorage
+  AsyncStorage,
+  Animated,
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { useSelector, useDispatch } from 'react-redux';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+
 import HeaderButton from '../components/HeaderButton';
 import EventCard from '../components/EventCard';
 import Colors from '../constants/Colors';
 import Contact from '../models/contact';
 import * as eventsActions from '../store/actions/events';
 import * as contactsActions from '../store/actions/contacts';
-import AddButton from '../components/AddButton';
 import transformPhoneNumber from '../helpers/transformPhoneNumber';
 import BodyText from '../components/BodyText';
-
-
-const renderEvent = (event) => {
-
-  return (
-    <View>
-      <EventCard
-        event={event}
-        onSelect={() => {
-          () => {};
-        }}
-      />
-    </View>
-  ); 
-};
+import SearchHeader from '../components/SearchHeader';
+import { Typography } from '../styles';
+import { createContactsByPhoneNumberTable } from '../helpers/contactByPhoneNumber';
 
 const EventsOverviewScreen = props => {
 
@@ -49,8 +42,28 @@ const EventsOverviewScreen = props => {
   const abortController = new AbortController();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSearch, setIsSearch] = useState(false);
   const [error, setError] = useState();
   const events = useSelector(state => state.events.availableEvents);
+  const [shownEvents, setShownEvents] = useState(events);
+  const user = useSelector(state => state.user.user);
+  const fetching = useSelector(state => state.events.fetching);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const searchPressedHandler = useCallback(() => {
+    setIsSearch((prevStatus) => !prevStatus);
+  }, []);
+
+  const cleanup = useCallback(() => {
+    setIsSearch(false);
+  }, [events]);
+
+  useEffect(() => {
+    if (!isSearch && events && events.length > 0) {
+      setShownEvents(events);
+    }
+    props.navigation.setParams({'searchHandler':searchPressedHandler, 'cleanHandler': cleanup});
+  }, [events, isSearch]);
 
   useEffect(() => {
     (async () => {
@@ -59,8 +72,8 @@ const EventsOverviewScreen = props => {
         const { data } = await Contacts.getContactsAsync({
           fields: [Contacts.Fields.PhoneNumbers],
         });
+        contacts = [];
         let localId = 0;
-        let count = 0;
         for (const contact of data) {
           if (contact.phoneNumbers !== undefined) {
             let numbersOnly = []
@@ -70,9 +83,6 @@ const EventsOverviewScreen = props => {
               if (transformedNumber !== undefined && 
                   numbersOnly.indexOf(transformedNumber) === -1) {
                 numbersOnly.push(transformPhoneNumber(transformedNumber));
-              }
-              if (count === 5) {
-                console.log("get contacts numbersOnly= " + JSON.stringify(numbersOnly));
               }
             }
             if (numbersOnly.length > 0) {
@@ -87,53 +97,72 @@ const EventsOverviewScreen = props => {
             }
           }
         }
+        createContactsByPhoneNumberTable(contacts);
         dispatch(contactsActions.setContacts(contacts));
       }
     })();
+
+    return cleanup;
   }, []);
 
+  const filterNameFunction = useCallback((text) => {
+    const filteredEvents = events.filter((event) => {
+      return (event.name.toUpperCase().includes(text.toUpperCase()));
+    });
+    setShownEvents(filteredEvents);
+  }, [events]);
+  const eventPressedHandler = useCallback((event) => {
+    cleanup();
+    props.navigation.navigate('EventDetails',
+    {event: event}
+    );
+  }, []);
+
+  const renderEvent = useCallback((event) => {
+    return (
+        <TouchableOpacity 
+        activeOpacity={0.6}
+        onPress={() => eventPressedHandler(event)}>
+          <EventCard
+            event={event}
+          />
+        </TouchableOpacity>
+    ); 
+  }, []);
 
   const loadEvents = useCallback(async () => {
     setError(null);
     setIsRefreshing(true);
     try {
-      await dispatch(eventsActions.fetchEvents(abortController.signal));
+      dispatch(eventsActions.fetchEvents());
     } catch (err) {
       setError(err.message);
-    }
+    } 
     setIsRefreshing(false);
-    return function cleanup() {
-      abortController.abort();
-    }
-  }, [dispatch, setIsLoading, setError]);
+  }, []);
 
   useEffect(() => {
-    const willFocusSub = props.navigation.addListener(
-      'willFocus',
-      loadEvents
-    );
-
-    return () => {
-      willFocusSub.remove();
-    };
-  }, [loadEvents]);
+    loadEvents();
+  }, [user]);
 
   useEffect(() => {
-    setIsLoading(true);
-      loadEvents().then(() => {
+    if (!events || fetching) {
+      setIsLoading(true);
+    } else {
       setIsLoading(false);
-    });
-  }, [dispatch, loadEvents]);
-
-  const selectItemHandler = (id, title) => {
-    props.navigation.navigate('EventDetails', {
-      eventId: id,
-      eventTitle: title
-    });
-  };
-  const createEventHandler = () => {
-    props.navigation.navigate('CreateEvent');
-  };
+    }
+  }, [fetching]);
+  
+  useEffect(() => {
+    Animated.timing(
+      fadeAnim,
+      {
+        toValue: isSearch?  hp("7%") : 0,
+        duration: 200,
+        useNativeDriver: false,
+      }
+    ).start();
+  }, [fadeAnim, isSearch]);
 
   if (error) {
     return (
@@ -150,28 +179,44 @@ const EventsOverviewScreen = props => {
 
   if (isLoading) {
     return (
-      <View style={styles.centered}>
+      <View style={styles.container}>
         <ActivityIndicator size="large" color={Colors.primary} />
+        <Text>Loading your events...</Text>
       </View>
     );
   }
+  console.log('shownEvents' + shownEvents && shownEvents.length);
   return (
     <View style={{...styles.container, ...styles.centered}}>
+      <Animated.View style={{...styles.searchHeaderContainer, height: fadeAnim}}>
+        <SearchHeader isActive={isSearch} searchFilter={filterNameFunction}/> 
+      </Animated.View>
       <FlatList
-        contentContainerStyle={{paddingBottom: 90}}
+        keyboardShouldPersistTaps='always'
+        contentContainerStyle={styles.listContent}
         style={styles.list}
         onRefresh={loadEvents}
         refreshing={isRefreshing}
-        data={events}
+        data={shownEvents || events}
+        ListEmptyComponent={emptyEvents}
+        numColumns={1}
         keyExtractor={item => item.id}
         renderItem={(itemData) => renderEvent(itemData.item)}
       />
-      {/* <Button title='details' onPress={() => selectItemHandler(1, 'The Item')} /> */}
-        <AddButton onPress={createEventHandler}/>
     </View>
   );
 };
 
+const emptyEvents = () => {
+  return (
+    <View style={styles.centered}>
+      <BodyText style={styles.emptyText}>
+        No events to show you.{"\n"}{"\n"}
+        You can create them by pressing the upper-right plus button,{"\n"}
+        or, you can sit and wait for an invite :)</BodyText>
+    </View>
+  );
+}
 
 EventsOverviewScreen.navigationOptions = navData => {
   return {
@@ -187,30 +232,57 @@ EventsOverviewScreen.navigationOptions = navData => {
         />
       </HeaderButtons>,
     headerRight: () =>
-      <HeaderButtons HeaderButtonComponent={HeaderButton}>
-        <Item
-          title="Check"
-          iconName={Platform.OS === 'android' ? 'md-checkmark' : 'ios-checkmark'}
-          onPress={() => {
-
-          }}
-        />
-      </HeaderButtons>
+      <View style={{flexDirection: 'row'}}>
+        <HeaderButtons HeaderButtonComponent={HeaderButton}>
+          <Item
+            title="Check"
+            iconName={Platform.OS === 'android' ? 'md-search' : 'ios-search'}
+            onPress={navData.navigation.getParam('searchHandler')}
+          />
+        </HeaderButtons>
+        <HeaderButtons HeaderButtonComponent={HeaderButton}>
+          <Item
+            title="Check"
+            iconName={Platform.OS === 'android' ? 'md-add' : 'ios-add'}
+            onPress={() => {
+              navData.navigation.getParam('cleanHandler')();
+              navData.navigation.navigate('CreateEvent');
+            }}
+          />
+        </HeaderButtons>
+      </View>
   };
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.grayish,
+    flex: 1,
+    justifyContent: 'center', 
+    alignItems: 'center' ,
+    backgroundColor: Colors.lightBluey,
+  },
+  searchHeaderContainer:{
+    borderBottomWidth: 0.5,
+    borderTopWidth: 0.5,
   },
   centered: { 
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center' 
   },
+  listContent: {
+    backgroundColor: Colors.lightBluey,
+  },
   list: {
     flex: 1,
-    width: "102%"
+    backgroundColor: Colors.lightBluey,
+    width: "100%"
+  },
+  emptyText: {
+    fontSize: Typography.medium,
+    paddingHorizontal: wp("10%"),
+    paddingTop: wp("10%"),
+    textAlign: 'center',
   },
   TouchableOpacityStyle: {
     position: 'absolute',

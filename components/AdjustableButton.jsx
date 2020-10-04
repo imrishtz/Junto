@@ -11,6 +11,7 @@ import {
   Dimensions,
   
 } from 'react-native';
+import { Layout } from '../styles';
 
 const AdjustableButton = props => {
 
@@ -38,17 +39,8 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 10,
     textAlign: 'left',
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Layout.shadow,
     borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
   },
   children: {
     paddingHorizontal: 2

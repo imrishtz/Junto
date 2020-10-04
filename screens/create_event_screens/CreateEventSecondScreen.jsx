@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, seReducer } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useReducer } from 'react';
 import {
   Button,
   View,
@@ -6,13 +6,16 @@ import {
   Platform,
   ActivityIndicator,
   StyleSheet,
+  TouchableOpacity,
   KeyboardAvoidingView,
   ScrollView,
+  FlatList,
   Alert,
   AsyncStorage,
   TextInput,
   Dimensions,
   PixelRatio,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import * as eventsActions from '../../store/actions/events';
@@ -23,144 +26,85 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 
-import AddText from '../../components/AddText';
-import RenderText from '../../components/RenderText';
 import Colors from '../../constants/Colors';
 import IconSelect from '../../components/IconSelect';
-import { icons } from '../../constants/CardRightIcons';
+import { icons } from '../../constants/Icons';
 import BodyText from '../../components/BodyText';
 import CustomButton from '../../components/CustomButton';
 import HeaderButton from '../../components/HeaderButton';
 import * as participantsActions from '../../store/actions/participants';
-import PollButton from '../../components/PollButton';
-import EditPoll from '../../components/EditPoll';
-import DateTimePickerS from '../../components/DateTimePickerS';
-import AdjustableButton from '../../components/AdjustableButton';
-import SelectDate, {DATE, TIME} from '../../components/SelectDate';
-import ActiveFrame from '../../components/ActiveFrame';
-import AddDate from '../../components/AddDate';
-import RenderDate from '../../components/RenderDate';
+import { getDateForUpload } from '../../helpers/dateToStringConverter';
+import { Layout, Typography } from '../../styles';
+import { getTypes } from '../../constants/event_types';
 
 const FIELD_HEIGHT = hp("13.5%");
-const LOCATION_POLL = 0;
-const DATE_POLL = 1;
-const currDate = new Date(Date.now());
-let extraKey = 0;
 
-const showSelectedParticipants = (participants) => {
-  return (
-    <View style={styles.scrollContainer}>
-    <ScrollView 
-      nestedScrollEnabled={true}
-      persistentScrollbar={true}
-      snapToAlignment='center'
-    >
-      <View style={styles.selectedParticipants}>
-        {participants.map((participant) => {
-          return (
-            <View 
-              key={participant.phoneNumbers[0] + extraKey++}
-              style={styles.selectedBoxTouchable}
-            >
-              <View 
-                style={styles.selectedBox}>
-                <BodyText 
-                  style={styles.selectedParticipantText}
-                  numberOfLines={1}
-                >
-                  {participant.firstName}
-                </BodyText>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    </ScrollView>
-  </View>
-  );
-}
 
 
 const CreateEventSecondScreen = props => {
-  const [textInputWidth, setTextInputWidth] = useState(180);
+  const user = useSelector(state => state.user.user);
   const [isLoading, setIsLoading] = useState(false);
-  const [icon, setIcon] = useState(icons[0]);
+  const [iconKey, setIconKey] = useState(icons[0].key);
+  const [eventType, setEventType] = useState('');
   const [error, setError] = useState();
+  const [openSelectTypes, setOpenSelectTypes] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [isElementsOnOneRow, setIsElementsOnOneRow] = useState(Dimensions.get('window').width > 500);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [suggestions, setSuggestions] = useState(false);
+  let [controller, setController] = useState();
+  const rawTypes = getTypes();
+  const types = rawTypes.map((type)=> {
+    return {label: type, value: type}
+  })
+  const [shownTypes, setShownTypes] = useState(types);
   const dispatch = useDispatch();
-  console.log("CreateEventScreen participants=" + JSON.stringify(participants));
-  console.log("CreateEventScreen datePoll=" + JSON.stringify(datePoll));
-  console.log("CreateEventScreen PixelRatio.get()=" +  PixelRatio.get());
 
   const { eventName, participants, location, 
           locationPoll, eventStartDate, 
           eventEndDate, datePoll } = props.navigation.getParam("eventData");
-    const data = props.navigation.getParam("eventData");
-
-          console.log(new Date(Date.now()) + "CreateEventSecondScreen eventName = " + eventName);       
-  console.log(new Date(Date.now()) + "CreateEventSecondScreen data = " + JSON.stringify(data));
-  const flexContainer = (flexSize) => {
+  const flexContainer = useCallback((flexSize) => {
     return (
       {flex: flexSize, padding: wp("1%")}
     ) ;
-  }
-  const updateLayout = () => {
+  }, []);
+
+  const updateLayout = useCallback(() => {
     const newWidth = Dimensions.get('window').width;
     setScreenWidth(newWidth);
-    setTextInputWidth(newWidth * 0.52);
     if (newWidth > 500) {
       setIsElementsOnOneRow(true);  
     } else {
       setIsElementsOnOneRow(false);
     }
-  };
-  const cleanup = () => {
-    console.log("CreateEventScreen Cleand");
-    dispatch(participantsActions.setParticipants([]));
+  }, []);
+  
+  const cleanup = useCallback(() => {
     Dimensions.removeEventListener('change', updateLayout);
-  };
+  }, []);
   useEffect(() => {
     updateLayout();
     Dimensions.addEventListener('change', updateLayout);
     return cleanup;
   }, []);
-  const setLocationPollHandler = (answers) => {
-    console.log("$$$ CREATE answer= " + JSON.stringify(answers));
-    setShowLocationPollModal(false);
-    setLocationPoll({pollAnswers: answers});
-  }
-  const showLocationPollHandler = () => {
-    setShowLocationPollModal(true);
-  }
-  const setDatePollHandler = (answers) => {
-    console.log("$$$ CREATE answer= " + JSON.stringify(answers));
-    setShowDatePollModal(false);
-    setDatePoll({pollAnswers: answers});
-  }
-  const showDatePollHandler = () => {
-    setShowDatePollModal(true);
-  }
-  const isPollHasAnswers = (pollType) => {
-    let isHasAnswers = false;
-    switch (pollType) {
-      case LOCATION_POLL:
-        isHasAnswers = locationPoll !== undefined && 
-                       locationPoll.pollAnswers !== undefined &&
-                       locationPoll.pollAnswers.length > 0;
-        break;
-      case DATE_POLL:
-        isHasAnswers = datePoll !== undefined && 
-                       datePoll.pollAnswers !== undefined &&
-                       datePoll.pollAnswers.length > 0;
-        break;
-    }
-    return  isHasAnswers;
-  }
 
+
+
+  const selectTypeHandler = useCallback((type) => { 
+    setEventType(type.value);
+    setSuggestions(false);
+  }, []);
+  const changeTypeText = useCallback((text) => {
+    setEventType(text);
+    const filteredTypes = types.filter((type) => {
+      return type.value.toUpperCase().includes(text.toUpperCase());
+    });
+    setShownTypes(filteredTypes);
+  }, [types]);
+  
   const submitHandler = useCallback(async () => {
-    console.log("submitHandler IMRI");
+    
+    const newArr = participants.concat({phoneNumbers: [user.phoneNumber]});
     if (!eventName) {
       console.log("submitHandler IMRI !isValid");
       return;
@@ -168,64 +112,38 @@ const CreateEventSecondScreen = props => {
     setError(null);
     setIsLoading(true);
     try {
-      console.log(" CreateEventScreenparticipants=" + JSON.stringify(participants));
       await dispatch(
         eventsActions.createEvent(
           eventName,
-          {from: eventStartDate, to: eventEndDate},//formState.inputValues.date,
+          {start: getDateForUpload(eventStartDate), end: getDateForUpload(eventEndDate)},
           location,
           locationPoll,
-          { name: 'Partying', icon: 'ios-menu'},// formState.inputValues.type,
-          participants,// formState.inputValues.participants,
-          ['cooler', 'shade'],// formState.inputValues.equipGroup,
-          ['pants', 'shirts'],// formState.inputValues.equipPersonal,
-          [{name: 'josh', responsibility: 'music'}, {name: 'benny', responsibility: 'sleep'}],// formState.inputValues.responsibilities
-          icon,
+          eventType,
+          participants, // TODO is copyied !!!!
+          ['cooler', 'shade'],
+          ['pants', 'shirts'],
+          [{name: 'josh', responsibility: 'music'}, {name: 'benny', responsibility: 'sleep'}],
+          iconKey,
           )
-      );
+          );
+      dispatch(participantsActions.setParticipants([]));
       props.navigation.popToTop();
     } catch (err) {
       console.log("submitHandler IMRI err=" + err);
       setError(err.message);
     }
     setIsLoading(false);
-  }, [dispatch, eventName, participants, location, locationPoll]);
+  }, [dispatch, eventName, participants, location, locationPoll, eventType, iconKey, eventStartDate, eventEndDate]);
   
 
   useEffect(() => {
     props.navigation.setParams({ submit: submitHandler });
   }, [submitHandler]);
   
-
-  const addParticipantsHandler = () => {
-    props.navigation.navigate('AddParticipant');
-  }
+  const onSelectIcon = useCallback((iconKeySelected) => {
+    setIconKey(iconKeySelected);
+  }, []);
   
-  const onSelectIcon = (iconKey) => {
-    setIcon(icons.find((icon) => icon.key === iconKey));
-  }
-
-  const eventNameBlurHandler = (text) => {
-    setEventNameSet(text && text.length > 0);
-  }
-  const locationNameBlurHandler = (text) => {
-    setLocationNameSet(text && text.length > 0);
-  }  
-
-  const changeStartDate = (name, value, isSet) => {
-    setEventStartDate({...eventStartDate, [name] :{value, isSet: isSet}});
-    // setting end date or hour to start selecting from the start date or hour
-    if (!eventEndDate.date.isSet && name === DATE || !eventEndDate.time.isSet && name === TIME) {
-      setEventEndDate({...eventEndDate, [name] :{value}});
-    }
-  }
-  const changeEndDate = (name, value, isSet) => {
-    setEventEndDate({...eventEndDate, [name] :{value, isSet: isSet}});
-  }
-  console.log("@@@ eventStartDate = " + JSON.stringify(eventStartDate)); 
-  console.log("### eventEndDate = " + JSON.stringify(eventEndDate)); 
-  console.log("@@@ eventStartDate = getHours" + eventStartDate.time.value.getHours());
-  const isActive = true;
   if (isLoading) {
     return (
       <View style={styles.centered}>
@@ -236,36 +154,49 @@ const CreateEventSecondScreen = props => {
       </View>
     );
   }
+
+  
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : null}
-      keyboardVerticalOffset={100}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView >
+    <ScrollView
+      keyboardShouldPersistTaps={'handled'}
+      >
         <View style={styles.screen}>
-          <View style={{...styles.field, height: FIELD_HEIGHT * 1.3, justifyContent: 'space-evenly'}}>
-            <View style={styles.button}>
-              <BodyText style={styles.buttonText}>
+          <View style={{...styles.field}}>
+            <View style={styles.eventTypeButton}>
+              <BodyText style={styles.eventTypeText}>
                 Event Type
               </BodyText>
-              <CustomButton
-                style={{width: 65, height: 65}}
-                onPress={() => {}}
-                icon={
-                  <FontAwesome 
-                  name='group'
-                  size={40} 
-                  color={'black'}
-                />}>
-              </CustomButton>
+              <View style={styles.input}>
+                <TextInput 
+                  value={eventType}
+                  placeholder={'Type here...'}
+                  onChangeText={changeTypeText}
+                  maxLength={15}
+                  returnKeyType='done'
+                  numberOfLines={1}
+                  onFocus={() => setSuggestions(true)}
+                  onBlur={() => setSuggestions(false)}
+                  blurOnSubmit={true}
+                  style={styles.inputText}
+                  selection={{start:0}}
+                />
+              </View>
+              <BodyText style={styles.comment}>
+              (max characters: 15)
+            </BodyText>      
             </View>
-            <View style={styles.button}>
-              <BodyText style={styles.buttonText}>Event Icon</BodyText>
-              <IconSelect icon={icon} onSelect={onSelectIcon}/>
+            <View style={styles.eventIconButton}>
+              <BodyText style={styles.iconText}>
+                Event Icon
+              </BodyText>
+                <IconSelect iconKey={iconKey} onSelect={onSelectIcon}/>
             </View>
           </View>
-          <View style={{...styles.field, height: FIELD_HEIGHT * 1.3, justifyContent: 'space-evenly'}}>
+          <View style={{...styles.field, justifyContent: 'space-evenly'}}>
             <View style={styles.button}>
               <BodyText style={styles.buttonText}>
                 Equipment & Supply
@@ -295,6 +226,34 @@ const CreateEventSecondScreen = props => {
               </CustomButton>
             </View>
           </View>
+        {suggestions ?
+          <View style={styles.dropDown}>
+            <View style={styles.typesSuggestions}>
+              <ScrollView
+                keyboardShouldPersistTaps='always'
+                nestedScrollEnabled={true}
+                contentContainerStyle={styles.typesSuggestionsContainer}
+              >
+                {shownTypes && shownTypes.map((type)=>
+                <TouchableOpacity 
+                  onPress={() => selectTypeHandler(type)}
+                  style={styles.typesSuggestItem}
+                  key={type.value}
+                  activeOpacity={0.6}
+                >
+                  <View style={styles.typeTextHolder}>
+                    <BodyText style={styles.typeText}>
+                      {type.value}
+                    </BodyText>
+                  </View>
+                </TouchableOpacity>)
+                }
+              </ScrollView>
+            </View>
+          </View>
+            :
+            null
+            }
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -340,44 +299,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center' 
   },
-  input: {
-    borderWidth: 0.5,
-    borderColor: 'black',
-    alignSelf: 'stretch',
-  },
   field: {
-    flex: 1,
+    ...Layout.field,
     width: '100%',
-    height: FIELD_HEIGHT,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: wp("4%"),
-    paddingVertical: hp("1%"),
-    alignItems: 'center',
-    borderTopWidth: 0.5,
-    borderTopColor: 'black',
-  },
-  iconSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    // height: FIELD_HEIGHT,
+    flex: 1,
   },
   text: {
     marginRight: "3%",
     fontSize: 16,
-  },
-  poll: {
-    position: 'absolute',
-  },
-  activePoll: {
-    flex: 1,
-    backgroundColor: Colors.lightGreeny,
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    borderRadius: 5,
-    justifyContent: 'center',
-    borderWidth: 0.5,
   },
   icon: {
     width: 45,
@@ -387,19 +317,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: 5,
   },
-  bothDates: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-  },
-  toColumn:{
-    flexDirection: 'column',
-    justifyContent: 'space-evenly',
-    alignItems: 'stretch',
-  },
-  singleDate: {
-    marginVertical: 5,
-  },
   button: {
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -408,52 +325,73 @@ const styles = StyleSheet.create({
     fontSize: hp("2%"),
     flexWrap: 'wrap',
   },
-  selectedParticipants: {
-    flexDirection: 'column',
-    padding: '1%',
-    alignItems: 'flex-start',
+  eventTypeButton: {
+    flex : 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scrollContainer: {
-    width: 200,
-    margin: "0.7%",
-    marginTop: 5,
-    borderRadius: 20,
-    overflow: 'hidden',
-    backgroundColor: Colors.lavender,
-    paddingTop: 1,
-    paddingHorizontal: 2,
-    borderWidth: 0.5,
-    borderColor: 'black',
+  eventIconButton: {
+    flex : 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: hp("1.3%"),
   },
-  selectedBoxTouchable: {
-    borderRadius: 15,
-    overflow: 'hidden',
+  eventTypeText: {
+    fontSize: Typography.xsmall,
+    textAlign: 'center',
+    marginBottom: hp("1%"),
   },
-  selectedBox: {
-    borderRadius: 15,
-    textAlign: 'left',
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
-    paddingHorizontal: "2%",
-    margin: 1.5,
-    backgroundColor: Colors.lightGreeny,
-    height: 31,
+  input: {
+    width: wp("55%"),
+    height: wp("8%"),
+    maxHeight: wp("8%"),
     justifyContent: 'center',
     alignItems: 'center',
   },
-  locationSelect: {
-    flex: 1,
+  inputText: {
+    fontSize: Typography.medium,
+    ...(Platform.OS === 'android' && {
+      fontFamily: 'jaldi-bold',
+    }),
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  comment: {
+    fontSize: Typography.xxsmall,
+    textAlign: 'center',
+    marginTop: hp("0.5%"),
+  },
+  iconText: {
+    fontSize: Typography.xsmall,
+    textAlign: 'center',
+  },
+  typeText: {
+    fontSize: Typography.small,
+  },
+  dropDown: {
+    position: 'absolute',
+    top: wp("22%"),
+    left: wp("6%"),
+    width: wp("48%"),
+  },
+  typeTextHolder: {
+    height: hp("6%"),
     justifyContent: 'center',
-    maxHeight: FIELD_HEIGHT * 0.85
+  },
+  typesSuggestions: {
+    flex: 1,
+    maxHeight: hp("50%"),
+    justifyContent: 'center',
+
+    borderWidth: 0.5,
+    backgroundColor: 'white',
+  },
+  typesSuggestionsContainer: {
+    backgroundColor: 'white',
+    paddingHorizontal: wp("1%"),
+  },  
+  typesSuggestItem: {
+    backgroundColor: 'white',
   },
 
 });

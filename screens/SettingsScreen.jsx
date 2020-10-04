@@ -10,7 +10,7 @@ import {
 import { useDispatch } from 'react-redux';
 
 import Colors from '../constants/Colors';
-import * as authActions from '../store/actions/auth';
+import * as userActions from '../store/actions/user';
 import BodyText from '../components/BodyText';
 
 const SettingsScreen = props => {
@@ -23,8 +23,8 @@ const SettingsScreen = props => {
         color={Colors.primary} 
         onPress={
           () => {
-            dispatch(authActions.logout());
-            //props.navigation.navigate('Auth')
+            dispatch(userActions.logout());
+            props.navigation.navigate('Auth')
           }
         }/>
     </View>

@@ -16,6 +16,8 @@ var _default = {
   lightGreeny: '#E1EEDB',
   lightBluey: '#E1EDF7',
   gray: '#CCCCCC',
-  darkBlue: '#0B5394'
+  darkBlue: '#0B5394',
+  lightPurple: '#F4E1FF',
+  shoutingRed: '#FF4C4C'
 };
 exports["default"] = _default;

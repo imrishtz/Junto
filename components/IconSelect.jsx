@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ArrowIcon from '@expo/vector-icons/FontAwesome';
 
 import { 
@@ -15,27 +15,34 @@ import {
   TouchableHighlight,
   Button
 } from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import BodyText from './BodyText';
 import Colors from '../constants/Colors';
-import { icons } from '../constants/CardRightIcons'
+import Icons, { icons } from '../constants/Icons'
 import ModalSelect from './ModalSelect';
 import CustomButton from './CustomButton';
+import { Layout, Typography } from '../styles';
 
 
 const IconSelect = props => {
   const [modalVisible, setModalVisible] = useState(false);
+  const { iconKey, onSelect } = props;
+
   let TouchableCmp = TouchableOpacity;
   
   if (Platform.OS === 'android' && Platform.Version >= 21) {
     TouchableCmp = TouchableNativeFeedback;
   }
 
-  const renderIcon = (icon) => {
+  const renderIcon = useCallback((icon) => {
     const IconFamily = icon.Family;
     return (
       <TouchableCmp 
         onPress={() => {
-          props.onSelect(icon.key); 
+          onSelect(icon.key); 
           setModalVisible(!modalVisible)
         }}
         activeOpacity={0.6}
@@ -43,16 +50,13 @@ const IconSelect = props => {
         <View style={styles.iconItem}>
           <IconFamily
             name={icon.name}
-            size={40} 
+            size={wp("10%")} 
             color={'black'}
           />
         </View>
       </TouchableCmp>
     );
-  }
-
-  const IconFamily = props.icon.Family;
-  const iconName = props.icon.name;
+  }, [modalVisible, onSelect]);
 
   return (
     <View style={styles.container}>
@@ -63,17 +67,18 @@ const IconSelect = props => {
         modalVisible={modalVisible}
         margin='35%'
       >
-        <FlatList 
-          contentContainerStyle={{ 
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-          }}
-          style={styles.list}
-          data={icons}
-          keyExtractor={item => item.key}
-          renderItem={itemData => renderIcon(itemData.item)}
-          numColumns={5}
-        />
+        <BodyText style={styles.headerText}>
+          Select icon:
+        </BodyText>
+        <View style={styles.listHolder}>
+          <FlatList 
+            contentContainerStyle={styles.list}
+            data={icons}
+            keyExtractor={item => item.key}
+            renderItem={itemData => renderIcon(itemData.item)}
+            numColumns={4}
+          />
+        </View>
       </ModalSelect >
       <View style={styles.buttonConatiner}>
         <TouchableCmp 
@@ -82,11 +87,7 @@ const IconSelect = props => {
           borderRadius={150}
         >
           <View style={styles.holder}>
-              <IconFamily
-                name={iconName}
-                size={40} 
-                color={'black'}
-              />
+             <Icons iconKey={iconKey} iconSize={30}/>
           </View>
         </TouchableCmp>
       </View>
@@ -96,70 +97,56 @@ const IconSelect = props => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: "1%", 
   },
   holder: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 65,
-    width: 65,
+    height: wp("18%"),
+    width: wp("18%"),
     borderRadius: 150,
     backgroundColor: Colors.turqouise,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    borderColor: 'black',
+    ...Layout.shadow,
     borderWidth: 0.5,
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
+  },
+  headerText:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontSize: Typography.medium,
+  },
+  listHolder: {
+    flex: 12,
   },
   list: {
-    flex: 1,
-    width: "80%",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 50
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
   },
   modalView: {
-    margin: "35%",
     backgroundColor: "white",
     borderRadius: 20,
-    padding: "4%",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5
+    ...Layout.shadow,
   },
   iconItem: {
     borderWidth: 0.5,
     borderColor: 'black',
     backgroundColor: Colors.turqouise,
-    width: 50,
-    height: 50,
+    width: wp("14%"),
+    height: wp("14%"),
     padding: '1%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonConatiner: {
     borderRadius: 150,
-    overflow: 'hidden',
-    elevation: 5,
+    ...Layout.shadow,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

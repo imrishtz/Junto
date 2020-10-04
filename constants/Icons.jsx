@@ -178,20 +178,25 @@ export const icons = [
     name: 'emoticon-poop',
     Family: MaterialCommunityIcons
   },
+  {
+    key: 'copyright',
+    name: 'copyright',
+    Family: MaterialIcons 
+  }
 ];
 
-const CardRightIcons = props => {
-  const icon = icons.find((icon) => icon.key === props.icon.key);
-
-  const IconName = icon.name;
+const Icons = props => {
+  const {iconSize, iconKey} = props;
+  const icon = icons.find((icon) => icon.key === iconKey);
+  const iconName = icon.name;
   const IconFamily = icon.Family;
   return (
     <IconFamily
-      name={IconName}
-      size={props.iconSize} 
-      color={props.iconColor}
+      name={iconName}
+      size={iconSize} 
+      color={props.color}
     />
   );
 };
 
-export default CardRightIcons;
+export default Icons;

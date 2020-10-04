@@ -11,10 +11,10 @@ import AddParticipantsScreen from '../screens/create_event_screens/AddParticipan
 import CreateEventScreen from '../screens/create_event_screens/CreateEventScreen';
 import CreateEventSecondScreen from '../screens/create_event_screens/CreateEventSecondScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import StartScreen from '../screens/StartScreen';
-import AuthScreen from '../screens/AuthScreen';
 
 import Colors from '../constants/Colors';
+import AuthPhoneScreen from '../screens/AuthPhoneScreen';
+import StartScreenPhone from '../screens/StartScreenPhone';
 
 
 const defaultNavOptions = {
@@ -23,16 +23,11 @@ const defaultNavOptions = {
     backgroundColor: Platform.OS === 'android' ? Colors.grayish : '',
   },
   headerTitleStyle: {
-    //fontFamily: 'jaldi',
-    
     fontSize: 20,
     textAlign: 'center',
-    
   },
-  // headerBackTitleStyle: {
-  //   fontFamily: 'open-sans'
-  // },
-  headerTintColor: Platform.OS === 'android' ? 'black' : Colors.primary,
+  headerTitleAlign: 'center',
+  headerTintColor: 'black',
 };
 
 
@@ -50,12 +45,13 @@ const EventsNavigator = createStackNavigator(
   }
 );
 const AuthNavigator = createStackNavigator({
-  Auth: AuthScreen
+  // Auth: AuthScreen
+  Auth: AuthPhoneScreen,
 }, {
   defaultNavigationOptions: defaultNavOptions
 });
 const MainNavigator = createSwitchNavigator({
-  Startup: StartScreen,
+  Startup: StartScreenPhone,
   Auth: AuthNavigator,
   Events: EventsNavigator
 });

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.dateToStrHour = dateToStrHour;
 exports.dateToStrDate = dateToStrDate;
 exports.maybeGetFullStrDate = maybeGetFullStrDate;
+exports.getDateForUpload = getDateForUpload;
 
 function maybeAddStartingZero(obj) {
   var str = obj.toString();
@@ -18,6 +19,10 @@ function maybeAddStartingZero(obj) {
 }
 
 function dateToStrHour(date) {
+  if (!date) {
+    return null;
+  }
+
   var fullDate = new Date(date);
   var hours = fullDate.getHours();
   var minutes = fullDate.getMinutes();
@@ -27,6 +32,10 @@ function dateToStrHour(date) {
 ;
 
 function dateToStrDate(date) {
+  if (!date) {
+    return null;
+  }
+
   var fullDate = new Date(date);
   var day = maybeAddStartingZero(fullDate.getDate());
   var month = maybeAddStartingZero(fullDate.getMonth() + 1);
@@ -43,4 +52,18 @@ function maybeGetFullStrDate(rawDate) {
     eventTime: time,
     eventDate: date
   };
+}
+
+function getDateForUpload(date) {
+  var ret = {};
+
+  if (date.time.isSet) {
+    ret.time = date.time.value.toString();
+  }
+
+  if (date.date.isSet) {
+    ret.date = date.date.value.toString();
+  }
+
+  return ret;
 }

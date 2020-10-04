@@ -7,8 +7,12 @@ import {
   TouchableNativeFeedback,
   Platform,
 } from 'react-native';
-
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
 import Colors from '../constants/Colors';
+import { Layout } from '../styles';
 import BodyText from './BodyText';
 
 
@@ -45,15 +49,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 150,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    overflow: Platform.OS === 'android' ? 'hidden' : 'visible',
-    elevation: 5,
+    ...Layout.shadow,
   },
   button: {
     flexDirection: 'row',
@@ -62,8 +58,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.turqouise,
     borderRadius: 150,
     borderWidth: 0.5,
-    width: 55,
-    height: 55,
+    width: wp("19%"),
+    height: wp("19%"),
   },
   buttonText: {
     flexDirection: 'row',

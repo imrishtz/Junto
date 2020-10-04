@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,  useRef, useCallback } from 'react';
 import { 
   View, 
   Text, 
   TextInput, 
-  StyleSheet 
+  StyleSheet,
+  Animated
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import {
@@ -13,18 +14,33 @@ import {
 
 import Colors from '../constants/Colors';
 
-const Header =  (props) => {
+const Header = (props) => {
+  const { searchFilter, isActive } = props;
   const [searchText, setSearchText] = useState('');
+  const inputRef = useRef();
+  const changeTextHandler = useCallback((text) => {
+    setSearchText(text);
+    searchFilter(text);
+  },[searchFilter]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setSearchText('');
+      inputRef.current.blur() 
+    } else {
+      inputRef.current.focus();
+    }
+  }, [isActive]);
+
+  console.log("is ACTIVE = " + isActive);
   return (
-    <View style={styles.hederContainer}>
+    <View style={styles.headerContainer}>
       <TextInput
         style={styles.header_style}
         value={searchText}
+        ref={inputRef}
         placeholder="Type Here..."    
-        onChangeText={(text) => {
-          setSearchText(text);
-          props.searchFilter(text);
-        }}
+        onChangeText={changeTextHandler}
         autoCorrect={false}
       />
       <View style={styles.searchIcon}>
@@ -39,7 +55,7 @@ const Header =  (props) => {
 };
 
 const styles = StyleSheet.create({
-  hederContainer: {
+  headerContainer: {
     flexDirection: 'row',
     alignItems: 'center', 
     justifyContent: 'center',
@@ -48,10 +64,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     paddingHorizontal: '1%',
     marginBottom: 1,
+    width: wp("100%"), 
   },
   header_style:{
-    width: wp("73%"), 
     height: hp("8%"), 
+    width: wp("80%"),
     minHeight: 30,
     fontFamily: 'jaldi',
     fontSize: hp("3%"),

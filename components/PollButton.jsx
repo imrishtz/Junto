@@ -11,6 +11,7 @@ import { FontAwesome, MaterialIcons, MaterialCommunityIcons, FontAwesome5 } from
 import Colors from '../constants/Colors';
 import BodyText from './BodyText';
 import ActiveInnerFrame from './ActiveInnerFrame';
+import { Layout, Typography } from '../styles';
 
 const ICON_SIZE = 35;
 
@@ -37,9 +38,9 @@ const PollButton = props => {
             </View>
         </View>
         </ButtonComponent>
-        {props.isActive? 
+        {props.isActive || !props.create? 
           null : 
-          <BodyText style={{margin: 0.5, fontSize: 10}}>Poll it !</BodyText>}
+          <BodyText style={{margin: 0.5, fontSize: Typography.xxxsmall}}>Poll it !</BodyText>}
       </View>
     </ActiveInnerFrame>
   );
@@ -54,15 +55,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Layout.shadow,
     borderRadius: 5,
-    elevation: 5,
     width: ICON_SIZE,
     height: ICON_SIZE,
     backgroundColor: Colors.lightBluey,

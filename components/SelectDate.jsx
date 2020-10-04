@@ -24,6 +24,7 @@ import AdjustableButton from './AdjustableButton';
 import { MaterialIcons } from '@expo/vector-icons';
 import ActiveInnerFrame from './ActiveInnerFrame';
 import {dateToStrDate, dateToStrHour} from '../helpers/dateToStringConverter';
+import { Layout } from '../styles';
 
 export const TIME = 'time';
 export const DATE = 'date';
@@ -56,14 +57,9 @@ const SelectDate = props => {
   if (Platform.OS === 'android' && Platform.Version >= 21) {
     TouchableCmp = TouchableNativeFeedback;
   }
-  
-  useEffect(() => {
-    console.log(new Date(Date.now()) + " SelectDate re - rendered FROM BEGINING= " + props.title ); 
-  }, [])
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || pickedDate;
-    console.log("event.type = " + event.type); 
     if (Platform.OS === 'ios') {
       setShow(true);
       setIosDate(currentDate);
@@ -83,7 +79,6 @@ const SelectDate = props => {
     setModalVisibility(false);
   };
   const showMode = (currentMode) => {
-    console.log("pressed currentMode = " + currentMode); 
     setShow(true);
     setMode(currentMode);
     if (Platform.OS === 'ios') {
@@ -190,17 +185,8 @@ const styles = StyleSheet.create({
     padding: wp("2%"),
     borderRadius: 10,
     backgroundColor: Colors.grayish,
-    overflow: Platform.OS === 'android'?  'hidden' : 'visible',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Layout.shadow,
     borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
   },
   header: {
     height: hp("4%"),

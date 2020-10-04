@@ -11,11 +11,11 @@ import {
   FlatList,
   TextInput,
   Alert,
-  AsyncStorage,
+  TouchableNativeFeedback,
+  TouchableOpacity,
 } from 'react-native';
-import { TouchableOpacity, TouchableNativeFeedback } from 'react-native-gesture-handler';
 import { HeaderButtons, Item } from 'react-navigation-header-buttons';
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
@@ -27,9 +27,12 @@ import BodyText from '../../components/BodyText';
 import Colors from '../../constants/Colors';
 import * as participantsActions from '../../store/actions/participants';
 import { useSelector, useDispatch } from 'react-redux';
+import { Layout, Shapes, Typography } from '../../styles';
+import Contact from '../../models/contact';
 
 const AddParticipantsScreen = props => {
   const [error, setError] = useState();
+  const user = useSelector(state => state.user.user);
   const [isLoading, setIsLoading] = useState(false);
   const contacts = useSelector(state => state.contacts.contacts);
   const [shownContacts, setShownContacts] = useState(contacts);
@@ -37,29 +40,22 @@ const AddParticipantsScreen = props => {
   const participants = useSelector(state => state.participants.participants);
   const [selectedContacts, setSelectedContacts] = useState(participants);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    const getContacts = async () => {
-      const contactsJSON = await AsyncStorage.getItem('contacts'); 
-      const contactsParsed = JSON.parse(contactsJSON);
-    }
-
-    setIsLoading(true);
-    getContacts();
-    setIsLoading(false);
-  }, []);
-
   useEffect(() => {
     if (error) {
       Alert.alert("An error occurred!", error, [{ text: 'Okay' }]);
     }
   }, [error]);
 
-  let TouchableCmp = TouchableOpacity;
-  
-  if (Platform.OS === 'android' && Platform.Version >= 21) {
-    TouchableCmp = TouchableNativeFeedback;
-  }
+  useEffect(() => {
+    if (!participants || participants.length === 0) {
+      const youAsContact = new Contact(Number.MAX_VALUE, 'You', '', [user.phoneNumber]);
+      youAsContact.isOrganizer = true;
+      youAsContact.isYou = true;
+      console.log('AddParticipantsScreen user.phoneNumber  = ' + JSON.stringify(user.phoneNumber));
+      console.log('AddParticipantsScreen contact you  = ' + JSON.stringify(youAsContact));
+      setSelectedContacts([youAsContact]);
+    }
+  }, []);
   
   useEffect(() => {
     dispatch(
@@ -73,58 +69,73 @@ const AddParticipantsScreen = props => {
       )
     )
   }
+  const makeOrganizer = (contactIndex) => {
+    if (!selectedContacts[contactIndex].isYou) {
+      setSelectedContacts(prevContacts => {
+        const newContacts = [...prevContacts];
+        newContacts[contactIndex].isOrganizer = !prevContacts[contactIndex].isOrganizer;
+        return newContacts;
+      });
+    }
+  }
+
   const addParticipant = (localId) => {
-    const con = contacts.find(contact => 
+    const contact = contacts.find(contact => 
       contact.localId === localId
     );
     
     if (selectedContacts !== undefined && 
       selectedContacts.map(part => part.localId)
-          .indexOf(con.localId) > -1) {
+          .indexOf(contact.localId) > -1) {
       removeParticipant(localId);
       return;
     }
+    contact.isOrganizer = false;
+    console.log('AddParticipantsScreen contact  = ' + JSON.stringify(contact));
     setSelectedContacts(prevSelectedContacts => [
       ...prevSelectedContacts,
-      con
+      contact
     ]);
   }
-  const renderParticipant = (participant) => {
+  const renderParticipant = (participant, index) => {
     return (
-      <TouchableCmp
-        key={participant.localId}
-        onPress={() => {
-          addParticipant(participant.localId); 
-          scrollViewRef.current.scrollToEnd({animated: true})
-        }}
-        activeOpacity={0.6}
-        >
-        <View style={styles.participant}>
-          {selectedContacts !== undefined && 
-          selectedContacts.map(part => part.localId)
-              .indexOf(participant.localId) > -1 ? 
-              <FontAwesome
-                style={styles.participantCheckIcon}
-                name="check-square-o"
-                size={20}
-                color={Colors.greeny}
-              /> 
-              : null
-          }
-          <BodyText style={styles.participantText}>{participant.firstName}</BodyText>
-        </View>
-      </TouchableCmp>
+      <View style={styles.paticipantTouchable}>
+        <TouchableOpacity
+          onPress={() => {
+            addParticipant(participant.localId); 
+            scrollViewRef.current.scrollToEnd({animated: true})
+          }}
+          activeOpacity={0.6}
+          >
+          <View style={styles.participant}>
+            {selectedContacts !== undefined && 
+            selectedContacts.map(part => part.localId)
+                .indexOf(participant.localId) > -1 ? 
+                <FontAwesome
+                  style={styles.participantCheckIcon}
+                  name="check-square-o"
+                  size={20}
+                  color={Colors.greeny}
+                /> 
+                : null
+            }
+            <BodyText style={styles.participantText}>{participant.firstName}</BodyText>
+          </View>
+        </TouchableOpacity>
+      </View>
     );
   };
 
   const searchFilterFunction = (text) => {
+    let i = 0;
     const newData = contacts.filter(contact => {
       const participantData = `
         ${contact.firstName != undefined ? contact.firstName.toUpperCase() : ''}
         ${contact.lastName != undefined ? contact.lastName.toUpperCase() : ''}`;
         const textData = text.toUpperCase();
-        return participantData.indexOf(textData) > -1;
-      });
+        return participantData.includes(textData);
+      }
+    );
     if (newData.length === 0) {
       newData[0] = {
         localId: -1, 
@@ -150,57 +161,79 @@ const AddParticipantsScreen = props => {
       <View style={styles.scrollContainer}>
         <ScrollView 
           ref={scrollViewRef}
-          style={styles.scroll}
           onContentSizeChange={(contentWidth, contentHeight)=> {
             scrollViewRef.current.scrollToEnd({animated: true})
           }}
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps='always'
         >
           <View style={styles.selectedParticipants}>
-            {selectedContacts && selectedContacts.length > 0 ? 
-              selectedContacts.map((contact) => {
+            {selectedContacts && selectedContacts.length > 0 && 
+              selectedContacts.map((contact, index) => {
                 return (
                   <View 
-                  key={contact.localId}
                   style={styles.selectedBoxTouchable}
+                    key={contact.localId}
                   >
-                    <TouchableCmp
-                      onPress={() => removeParticipant(contact.localId)}
-                      activeOpacity={0.6}
-                    >
-                      <View 
-                        style={styles.selectedBox}>
-                        <BodyText style={styles.selectedParticipantText}>
-                          {contact.firstName}
-                        </BodyText>
-                      </View>
-                    </TouchableCmp>
+                    <View style={{...styles.selectedBox, ...(contact.isOrganizer && {backgroundColor: Colors.lightBluey})}}>
+                      <TouchableOpacity
+                        onPress={() => makeOrganizer(index)}
+                        activeOpacity={0.6}
+                          >
+                        <View>
+                          <BodyText numberOfLines={1} multiLines={false} style={styles.selectedParticipantText}>
+                            {contact.firstName}
+                          </BodyText>
+                        </View>
+                      </TouchableOpacity>
+                      {!contact.isYou && 
+                        <TouchableOpacity
+                          onPress={() => removeParticipant(contact.localId)}
+                            >
+                            <View style={styles.remove}>
+                              <MaterialIcons
+                                name='delete'
+                                color='black'
+                                size={hp('2.5%')}
+                              />
+
+                            </View>
+                        </TouchableOpacity>
+                      }
+                    </View>
                   </View>
                 );
-              }) :
-              <BodyText >Please Select Participants from your contact list.</BodyText>
-            }
+              }) } 
+              {selectedContacts.length < 2 ?
+              <View style={styles.noSelectedParticipantComment}>
+                <BodyText style={styles.noSelectedParticipantCommentText}>
+                  Tap a contact from the list below to join the event.
+                </BodyText>
+              </View>
+              : null
+              }
           </View>
         </ScrollView>
-      </View>
-        <View style={styles.listContainer}>
-          <FlatList
-            contentContainerStyle={{ 
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-            }}
-            ListHeaderComponentStyle={{
-              width: '100%',
-            }}
-            ListHeaderComponent={<SearchHeader searchFilter={searchFilterFunction} />}
-            style={styles.list}
-            data={shownContacts.length !== 0 ? shownContacts : contacts}
-            keyExtractor={item => item.localId.toString()}
-            renderItem={itemData => renderParticipant(itemData.item)}
-            numColumns={1}
-            stickyHeaderIndices={[0]}
-          />
+        <View style={styles.fromButtom}>
+          <Text style={styles.adminCommentText}>* Select who else can edit the event by tapping *</Text>
         </View>
+      </View>
+      
+      <View style={styles.listContainer}>
+      <SearchHeader searchFilter={searchFilterFunction} />
+        <FlatList
+          contentContainerStyle={{ 
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+          }}
+          style={styles.list}
+          data={shownContacts}
+          keyExtractor={item => item.localId.toString()}
+          renderItem={itemData => renderParticipant(itemData.item, itemData.index)}
+          numColumns={1}
+        />
+      </View>
   </View>
   );
 };
@@ -214,70 +247,108 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     margin: "0.7%",
-    marginTop: 5,
+    // marginTop: 5,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: Colors.lavender,
     paddingTop: 1,
     paddingLeft: 2,
+    height: hp('10%'),
   },
+  // scroll: {
+  //   flex: 1,
+  // },
   selectedParticipants: {
     flexWrap: 'wrap',
     flexDirection: 'row',
-    padding: '1%',
+    paddingHorizontal: wp('1.5%'),
+    paddingVertical: hp('0.5%'),
     alignItems: 'center',
   },
   selectedBoxTouchable: {
-    borderRadius: 15,
+    borderRadius: 18,
+    overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+    width: wp('30%'),
+  },
+  noSelectedParticipantComment: {
+    marginTop: hp('2%'),
+  },
+  noSelectedParticipantCommentText: {
+    textAlign: 'center',
+    fontSize: Typography.medium,
+  },
+  paticipantTouchable: {
+    borderRadius: 13,
+    overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+  },
+  adminCommentText: {
+    fontSize: Typography.xxxsmall,
+    textAlign: 'center',
+    backgroundColor: Colors.lightBluey,
+    borderRadius: 8,
+    paddingHorizontal: '1%',
     overflow: 'hidden',
   },
   selectedBox: {
     borderRadius: 15,
-    textAlign: 'left',
-    overflow: 'hidden',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    flexDirection: 'row',
+    ...Layout.shadow,
+    ...Layout.centered,
     borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
-    padding: "1%",
-    margin: 1.5,
+    paddingHorizontal: wp("1.3%"),
+    marginHorizontal: wp("0.4%"),
+    marginVertical: hp("0.2%"),
     backgroundColor: Colors.lightGreeny,
-    height: 31,
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: hp("5%"),
+  },
+  remove: {
+    ...Layout.centered,
+    borderRadius: 150,
+    borderWidth: 0.5,
+    ...Shapes.roundSmallButton,
+    backgroundColor: Colors.lavender,
+    marginLeft: wp('1%'),
+    height: wp('6.5%'),
+    width: wp('6.5%'),
   },
   selectedParticipantText: {
-    fontSize: 14,
+    fontSize: Typography.xxsmall,
     fontFamily: 'jaldi-bold',
+    textAlign: 'center',
+    flexWrap: 'nowrap',
+    width: wp('19%'),
+    paddingVertical: Platform.OS === 'android' ? hp('2%') : null,
+  },
+  selectedParticipant: {
+
+  },
+  fromButtom: {
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    overflow: 'visible'
   },
   listContainer: {
-    flex: 4,
-    padding: wp("1%"),
+    flex: 3.7,
+    // padding: wp("1%"),
     backgroundColor: Colors.grayish,
-    borderRadius: 30,
     overflow: 'hidden',
     margin: wp("0.5%"),
   },
   participant: {
     width: wp("80%"),
     flexDirection: 'row',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    paddingVertical: 8,
-    marginLeft: 1,
+    overflow: Platform.OS === 'ios' ? 'visible' : 'hidden',
+    paddingVertical: hp("1%"),
     borderRadius: 15,
     borderWidth: 0.8,
     borderColor: 'black',
-    borderBottomWidth: 0.2,
+    borderBottomWidth: 0.4,
     backgroundColor: Colors.grayish,
   },
   participantCheckIcon: {
-    marginLeft: 2,
+    marginLeft: wp("1%"),
   },
   participantText: {
     fontSize: hp("2.3%"),

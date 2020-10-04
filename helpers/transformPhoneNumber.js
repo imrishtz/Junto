@@ -8,13 +8,25 @@ export default transformPhoneNumber = (number) => {
 
   let newString = number.replace(/[^0-9+]/ig, "");
   // remove phones that are not cellular or global (with +)
-  if (!newString.startsWith(ISRAEL_SHORT_CELLULAR_PREFIX) &&
-      !newString.startsWith(GLOBAL_PREFIX)) {
-    return;
-  }
+  // TODO  - return this code: !
+  // if (!newString.startsWith(ISRAEL_SHORT_CELLULAR_PREFIX) &&
+  //     !newString.startsWith(GLOBAL_PREFIX)) {
+  //   return;
+  // }
+  // if (newString.length === ISRAEL_SHORT_DIGIT_NUMBER &&
+  //     newString.startsWith(ISRAEL_SHORT_CELLULAR_PREFIX)) {
+  //   newString = newString.replace('0', ISRAEL_FULL_PREFIX);
+  // }
   if (newString.length === ISRAEL_SHORT_DIGIT_NUMBER &&
-      newString.startsWith(ISRAEL_SHORT_CELLULAR_PREFIX)) {
-    newString = newString.replace('0', ISRAEL_FULL_PREFIX);
-  }
+    (newString.startsWith(ISRAEL_SHORT_CELLULAR_PREFIX) ||
+    newString.startsWith('04'))) {
+  newString = newString.replace('0', ISRAEL_FULL_PREFIX);
+}
   return newString;
+}
+
+export const getDisplayNumber = (number) => {
+  if (number.startsWith(ISRAEL_FULL_PREFIX)) {
+    return number.replace(ISRAEL_FULL_PREFIX + '5', ISRAEL_SHORT_CELLULAR_PREFIX);
+  }
 }

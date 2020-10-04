@@ -21,6 +21,7 @@ import SelectDate, {DATE, TIME} from './SelectDate';
 import BodyText from './BodyText';
 import ActiveFrame from './ActiveFrame';
 import ActiveInnerFrame from './ActiveInnerFrame';
+import { Layout } from '../styles';
 
 const currDate = new Date(Date.now());
 const AddDate = props => {
@@ -34,7 +35,6 @@ const AddDate = props => {
     time: {value: currDate, isSet: false},
     date: {value: currDate, isSet: false},
   });
-  console.log(new Date(Date.now()) + "eventStartDate = " + JSON.stringify(eventStartDate)); 
   let TouchableCmp = TouchableOpacity;
   if (Platform.OS === 'android' && Platform.Version >= 21) {
     TouchableCmp = TouchableNativeFeedback;
@@ -78,7 +78,7 @@ const AddDate = props => {
               </TouchableCmp>
               <TouchableCmp 
                 style={styles.setButtonHolder}
-                onPress={() => (console.log("end pressed"),setIsStart(false))}
+                onPress={() => setIsStart(false)}
               >
                   <View style={{...styles.setButton, 
                                 backgroundColor: !isStart? Colors.grayish : Colors.gray,
@@ -167,17 +167,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     borderRadius:8,
-    overflow: Platform.OS === 'android'?  'hidden' : 'visible',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Layout.shadow,
     borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
   },
   roundSmallButtonHolder: {
     alignItems: 'center',
@@ -189,19 +180,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: Platform.OS === 'android'?  'hidden' : 'visible',
     paddingHorizontal: 5,
-    backgroundColor: Colors.lightGreeny,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    ...Layout.shadow,
     borderWidth: 0.5,
-    borderColor: 'black',
-    elevation: 5,
   },
 });
 

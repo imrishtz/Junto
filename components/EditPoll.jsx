@@ -21,6 +21,8 @@ import BodyText from './BodyText';
 import Colors from '../constants/Colors';
 import PollAnswer from '../models/poll-answer';
 import { widthPercentageToDP } from 'react-native-responsive-screen';
+import { Layout, Typography } from '../styles';
+import DeleteItem from './DeleteItem';
 
 
 const EditPoll = props => {
@@ -77,12 +79,14 @@ const EditPoll = props => {
               }}>
                 <View style={styles.answerHolder}>
                   {answers.map((answer, index) => 
-                      <PollRender 
-                          key={index}
-                          answer={answer}
-                          index={index}
-                          deleteAnswer={deleteAnswer}
-                      />
+                  <View style={styles.answerContainer} key={index}>
+                    <PollRender 
+                        answer={answer}
+                        index={index}
+                        size={Typography.xsmall}
+                    />
+                    <DeleteItem index={index} deleteAnswer={deleteAnswer}/>
+                  </View>
                   )}
                 </View>
               </ScrollView>
@@ -128,7 +132,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     marginHorizontal: wp("10%"),
-    fontSize: 24,
+    fontSize: Typography.xlarge,
     fontFamily: 'jaldi-bold',
   },
   modalView: {
@@ -141,14 +145,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     alignItems: "center",
     height: hp("80%"),
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+   ...Layout.shadow,
   },
   icon: {
     borderRadius: 6,
@@ -160,50 +157,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   contentContainer: {
-    flex: 4,
+    flex: 7,
     justifyContent: 'center',
   },
-  answersContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noAnswersView: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    textAlign: 'center',
-  },
-  answers: {
-    flex: 5,
-    marginHorizontal: 10,
-    marginVertical: 5,
-    borderWidth: 0.5,
-    paddingHorizontal: 2,
-    paddingVertical: 1,
-    backgroundColor: Colors.lightGreeny,
-    borderRadius: 8,
-  },
-  answer: {
-    fontSize: 16,
-  }, 
   answerHolder: {
     width: '95%',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  roundSmallButtonHolder: {
-    flex: 1,
-    margin: wp("1%"),
-    width: '10%',
-  },
-  roundSmallButton: {
-    borderWidth: 0.5,
-    borderRadius: 150,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    width: 25,
-    height: 25,
-    backgroundColor: Colors.lightGreeny,
   },
   addHolder: {
     justifyContent: 'center',
@@ -219,7 +179,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   answerContainer: {
-    width: '100%',
+    width: wp('70%'),
+    marginVertical: hp("0.7%"),
+    justifyContent: 'center',
     flexDirection: 'row',
     alignItems: 'center',
   },

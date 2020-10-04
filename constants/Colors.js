@@ -11,4 +11,6 @@ export default {
   lightBluey: '#E1EDF7',
   gray: '#CCCCCC',
   darkBlue: '#0B5394',
+  lightPurple: '#F4E1FF',
+  shoutingRed: '#FF4C4C',
 }
